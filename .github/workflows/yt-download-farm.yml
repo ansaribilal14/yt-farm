@@ -76,9 +76,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install yt-dlp + BGutil
+      - name: Install yt-dlp + BGutil + Deno
         run: |
           pip install -U yt-dlp bgutil-ytdlp-pot-provider requests
+          curl -fsSL https://deno.land/install.sh | sudo DENO_INSTALL=/usr/local sh || echo 'deno install failed'
+          deno --version || echo 'deno unavailable — JS challenge solving will fail'
 
       - name: Set up BGutil POT provider
         run: |
@@ -124,7 +126,7 @@ jobs:
               PARGS="$PROXY_ARGS"
             fi
             echo "outer=$OUTER using PARGS='$PARGS'"
-            for CFG in web web_safari mweb tv tv_simply android_vr; do
+            for CFG in tv_simply web web_safari mweb tv android_vr; do
               echo "=== client=$CFG outer=$OUTER ==="
               yt-dlp --no-cache-dir --no-check-certificates -v \
                 $PARGS \
@@ -139,6 +141,24 @@ jobs:
             done
             sleep 15
           done
+          [ "$OK" = "1" ] || {
+            echo "=== final: android_vr with manual GVS PO token ==="
+            POT=$(curl -s -X POST http://127.0.0.1:4416/get_pot -H 'Content-Type: application/json' -d "{\"content_binding\":\"$VID\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('poToken',''))" 2>/dev/null)
+            if [ -n "$POT" ]; then
+              yt-dlp --no-cache-dir --no-check-certificates -v \
+                $PARGS \
+                --extractor-args "youtube:player_client=android_vr;po_token=android_vr.gvs+$POT" \
+                -f "bv*+ba/b" \
+                --merge-output-format mp4 \
+                --retries 3 --fragment-retries 3 \
+                --postprocessor-args "ffmpeg:-movflags +faststart" \
+                -o "video_${VID}.%(ext)s" \
+                "https://www.youtube.com/watch?v=${VID}" \
+                && OK=1
+            else
+              echo 'could not fetch POT from bgutil server'
+            fi
+          }
           [ "$OK" = "1" ] || exit 1
 
       - name: Verify video
