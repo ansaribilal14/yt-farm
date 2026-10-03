@@ -124,12 +124,12 @@ jobs:
               PARGS="$PROXY_ARGS"
             fi
             echo "outer=$OUTER using PARGS='$PARGS'"
-            for CFG in tv web mweb web_safari android_vr tv_simply; do
+            for CFG in web web_safari mweb tv tv_simply android_vr; do
               echo "=== client=$CFG outer=$OUTER ==="
-              yt-dlp --no-cache-dir --no-check-certificates \
+              yt-dlp --no-cache-dir --no-check-certificates -v \
                 $PARGS \
                 --extractor-args "youtube:player_client=$CFG;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416" \
-                -f "bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/b[height<=1080]" \
+                -f "bv*+ba/b" \
                 --merge-output-format mp4 \
                 --retries 3 --fragment-retries 3 \
                 --postprocessor-args "ffmpeg:-movflags +faststart" \
