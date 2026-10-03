@@ -106,24 +106,28 @@ jobs:
           echo "PROXY_ARGS=$PROXY_ARGS"
 
           OK=0
-          for CFG in tv web mweb web_safari android_vr; do
-            echo "=== trying player_client=$CFG ==="
-            yt-dlp --no-cache-dir --no-check-certificates \
-              $PROXY_ARGS \
-              --extractor-args "youtube:player_client=$CFG;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416" \
-              -f "bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/b[height<=1080]" \
-              --merge-output-format mp4 \
-              --retries 3 --fragment-retries 3 \
-              --postprocessor-args "ffmpeg:-movflags +faststart" \
-              -o "video_${VID}.%(ext)s" \
-              "https://www.youtube.com/watch?v=${VID}" \
-              && OK=1 && break
-          done
-          if [ "$OK" != "1" ]; then
-            echo "All clients failed with proxy; trying without proxy"
-            for CFG in tv web mweb; do
-              echo "=== noproxy player_client=$CFG ==="
+          OUTER=0
+          while [ "$OUTER" -lt 4 ]; do
+            OUTER=$((OUTER+1))
+            if [ "$OUTER" -gt 1 ]; then
+              echo "=== outer attempt $OUTER: refreshing WARP exit IP ==="
+              warp-cli --accept-tos disconnect || true
+              sleep 2
+              warp-cli --accept-tos connect || true
+              sleep 5
+              if warp-cli --accept-tos status 2>/dev/null | grep -qi connected; then
+                PARGS="--proxy http://127.0.0.1:40000"
+              else
+                PARGS=""
+              fi
+            else
+              PARGS="$PROXY_ARGS"
+            fi
+            echo "outer=$OUTER using PARGS='$PARGS'"
+            for CFG in tv web mweb web_safari android_vr tv_simply; do
+              echo "=== client=$CFG outer=$OUTER ==="
               yt-dlp --no-cache-dir --no-check-certificates \
+                $PARGS \
                 --extractor-args "youtube:player_client=$CFG;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416" \
                 -f "bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/b[height<=1080]" \
                 --merge-output-format mp4 \
@@ -131,9 +135,10 @@ jobs:
                 --postprocessor-args "ffmpeg:-movflags +faststart" \
                 -o "video_${VID}.%(ext)s" \
                 "https://www.youtube.com/watch?v=${VID}" \
-                && OK=1 && break
+                && OK=1 && break 2
             done
-          fi
+            sleep 15
+          done
           [ "$OK" = "1" ] || exit 1
 
       - name: Verify video
