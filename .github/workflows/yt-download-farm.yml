@@ -128,7 +128,7 @@ jobs:
             echo "outer=$OUTER using PARGS='$PARGS'"
             for CFG in tv_simply web web_safari mweb tv android_vr; do
               echo "=== client=$CFG outer=$OUTER ==="
-              yt-dlp --no-cache-dir --no-check-certificates -v \
+              yt-dlp --no-cache-dir --no-check-certificates -v --remote-components ejs:github \
                 $PARGS \
                 --extractor-args "youtube:player_client=$CFG;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416" \
                 -f "bv*+ba/b" \
@@ -145,7 +145,7 @@ jobs:
             echo "=== final: android_vr with manual GVS PO token ==="
             POT=$(curl -s -X POST http://127.0.0.1:4416/get_pot -H 'Content-Type: application/json' -d "{\"content_binding\":\"$VID\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('poToken',''))" 2>/dev/null)
             if [ -n "$POT" ]; then
-              yt-dlp --no-cache-dir --no-check-certificates -v \
+              yt-dlp --no-cache-dir --no-check-certificates -v --remote-components ejs:github \
                 $PARGS \
                 --extractor-args "youtube:player_client=android_vr;po_token=android_vr.gvs+$POT" \
                 -f "bv*+ba/b" \
