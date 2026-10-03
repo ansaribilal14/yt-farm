@@ -71,6 +71,11 @@ jobs:
           echo "Proxy: http://127.0.0.1:40000"
         continue-on-error: true
 
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -131,7 +136,7 @@ jobs:
               yt-dlp --no-cache-dir --no-check-certificates -v --remote-components ejs:github \
                 $PARGS \
                 --extractor-args "youtube:player_client=$CFG;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416" \
-                -f "bv*+ba/b" \
+                -f "bv*[vcodec^=avc][height<=1080]+ba/bv*+ba/b" \
                 --merge-output-format mp4 \
                 --retries 3 --fragment-retries 3 \
                 --postprocessor-args "ffmpeg:-movflags +faststart" \
@@ -148,7 +153,7 @@ jobs:
               yt-dlp --no-cache-dir --no-check-certificates -v --remote-components ejs:github \
                 $PARGS \
                 --extractor-args "youtube:player_client=android_vr;po_token=android_vr.gvs+$POT" \
-                -f "bv*+ba/b" \
+                -f "bv*[vcodec^=avc][height<=1080]+ba/bv*+ba/b" \
                 --merge-output-format mp4 \
                 --retries 3 --fragment-retries 3 \
                 --postprocessor-args "ffmpeg:-movflags +faststart" \
