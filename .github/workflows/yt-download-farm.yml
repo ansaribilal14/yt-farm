@@ -57,13 +57,14 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
           sudo apt-get update -qq
           sudo apt-get install -y cloudflare-warp
-          warp-cli registration new || true
-          warp-cli mode proxy
-          warp-cli connect
+          warp-cli registration new --accept-tos || echo 'WARP registration failed (continuing without WARP)'
+          warp-cli mode proxy || true
+          warp-cli connect || true
           sleep 3
           echo "WARP status:"
-          warp-cli status
+          warp-cli status || true
           echo "Proxy: http://127.0.0.1:40000"
+        continue-on-error: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -95,7 +96,7 @@ jobs:
           # Try with WARP proxy + BGutil PO token
           yt-dlp --no-cache-dir --no-check-certificates \
             --proxy http://127.0.0.1:40000 \
-            --extractor-args "youtube:player_client=android_vr,web" \
+            --extractor-args "youtube:player_client=android_vr,web;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416" \
             -f "best[ext=mp4]/worst[ext=mp4]/worst" \
             --merge-output-format mp4 \
             --postprocessor-args "ffmpeg:-movflags +faststart" \
@@ -104,7 +105,7 @@ jobs:
             || \
           # Fallback without WARP
           yt-dlp --no-cache-dir --no-check-certificates \
-            --extractor-args "youtube:player_client=android_vr,web" \
+            --extractor-args "youtube:player_client=android_vr,web;youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416" \
             -f "best[ext=mp4]/worst[ext=mp4]/worst" \
             --merge-output-format mp4 \
             --postprocessor-args "ffmpeg:-movflags +faststart" \
