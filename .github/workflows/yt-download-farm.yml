@@ -186,11 +186,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VID="${{ steps.vid.outputs.video_id }}"
+          REPO="$GITHUB_REPOSITORY"
           F=$(ls video_${VID}.* | head -1)
-          gh release view "vid-${VID}" >/dev/null 2>&1 \
-            || gh release create "vid-${VID}" --title "farm: ${VID}" \
+          gh release view "vid-${VID}" --repo "$REPO" >/dev/null 2>&1 \
+            || gh release create "vid-${VID}" --repo "$REPO" \
+                 --title "farm: ${VID}" \
                  --notes "auto: farm mirror for ${VID}" --latest=false || true
-          gh release upload "vid-${VID}" "$F" --clobber
+          gh release upload "vid-${VID}" "$F" --repo "$REPO" --clobber
           echo "release assets:"
-          gh release view "vid-${VID}" --json assets -q '.assets[].name'
+          gh release view "vid-${VID}" --repo "$REPO" --json assets \
+            -q '.assets[].name'
 
