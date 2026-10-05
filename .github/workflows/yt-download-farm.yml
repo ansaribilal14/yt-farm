@@ -32,7 +32,7 @@ on:
         default: ''
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 jobs:
@@ -180,4 +180,17 @@ jobs:
           path: video_${{ steps.vid.outputs.video_id }}.*
           retention-days: 7
           compression-level: 0  # video is already compressed
+
+      - name: Mirror to release (unthrottled download path)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VID="${{ steps.vid.outputs.video_id }}"
+          F=$(ls video_${VID}.* | head -1)
+          gh release view "vid-${VID}" >/dev/null 2>&1 \
+            || gh release create "vid-${VID}" --title "farm: ${VID}" \
+                 --notes "auto: farm mirror for ${VID}" --latest=false || true
+          gh release upload "vid-${VID}" "$F" --clobber
+          echo "release assets:"
+          gh release view "vid-${VID}" --json assets -q '.assets[].name'
 
